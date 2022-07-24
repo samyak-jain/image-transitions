@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "transition-cpu",
+    "transition-gpu"
+]
