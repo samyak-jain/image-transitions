@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 cust = "0.3.2"
+thiserror = "1.0.31"
 
 [build-dependencies]
 cuda_builder = "0.3.0"

@@ -1,61 +1,75 @@
-#![feature(restricted_std)]
+use cust::{error::CudaError, memory::DeviceCopy, prelude::*};
+use thiserror::Error;
 
-use cust::prelude::*;
-use std::error::Error;
+#[derive(Error, Debug)]
+pub enum TransitionError {
+    #[error("Sizes of the two images are not equal. First image size: {first_image_size}, Second image size: {second_image_size}")]
+    SizeNotEqual {
+        first_image_size: usize,
+        second_image_size: usize,
+    },
+    #[error("gpu error")]
+    GPUError(#[from] CudaError),
+}
 
 static PTX: &str = include_str!("../ptx/image.ptx");
 
-fn check() -> Result<(), Box<dyn Error>> {
-    let _ctx = cust::quick_init().unwrap();
+pub fn cross_fade<T: DeviceCopy + std::fmt::Debug + Default>(
+    first_image: &[T],
+    second_image: &[T],
+) -> Result<Vec<T>, TransitionError> {
+    let _ctx = cust::quick_init()?;
+    let module = Module::from_ptx(PTX, &[])?;
+    let stream = Stream::new(StreamFlags::NON_BLOCKING, None)?;
 
-    let module = Module::from_ptx(PTX, &[]).unwrap();
+    if first_image.len() != second_image.len() {
+        return Err(TransitionError::SizeNotEqual {
+            first_image_size: first_image.len(),
+            second_image_size: second_image.len(),
+        });
+    }
 
-    let stream = Stream::new(StreamFlags::NON_BLOCKING, None).unwrap();
+    let image_size = first_image.len();
 
-    let lhs = [1, 2, 3, 4];
-    let rhs = [2, 3, 4, 5];
+    let first_image_buffer = first_image.as_dbuf()?;
+    let second_image_buffer = second_image.as_dbuf()?;
 
-    let lhs_gpu = lhs.as_dbuf().unwrap();
-    let rhs_gpu = rhs.as_dbuf().unwrap();
+    let mut output_buffer: UnifiedBuffer<T> = unsafe { UnifiedBuffer::uninitialized(image_size) }?;
 
-    let mut out = vec![0; 4];
-    let out_buf = out.as_slice().as_dbuf().unwrap();
-
-    let func = module.get_function("add").unwrap();
-
-    let (_, block_size) = func.suggested_launch_configuration(0, 0.into()).unwrap();
-
-    let grid_size = (4 + block_size - 1) / block_size;
+    let func = module.get_function("add")?;
+    let (_, block_size) = func.suggested_launch_configuration(0, 0.into())?;
+    let grid_size = (image_size as u32 + block_size - 1) / block_size;
 
     unsafe {
         launch!(
-            // slices are passed as two parameters, the pointer and the length.
             func<<<grid_size, block_size, 0, stream>>>(
-                lhs_gpu.as_device_ptr(),
-                lhs_gpu.len(),
-                rhs_gpu.as_device_ptr(),
-                rhs_gpu.len(),
-                out_buf.as_device_ptr(),
+                first_image_buffer.as_device_ptr(),
+                first_image_buffer.len(),
+                second_image_buffer.as_device_ptr(),
+                second_image_buffer.len(),
+                output_buffer.as_unified_ptr(),
             )
-        )
-        .unwrap();
+        )?;
     }
 
-    stream.synchronize().unwrap();
+    stream.synchronize()?;
 
-    out_buf.copy_to(&mut out).unwrap();
+    // TODO: see if we can avoid an allocation here
+    // This is safe since we're accessing the unified memory after stream synchonization
+    let output_image = output_buffer.to_vec();
 
-    println!("{:#?} + {:#?} = {:#?}", lhs, rhs, out);
-
-    Ok(())
+    Ok(output_image)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::check;
+    use crate::cross_fade;
 
     #[test]
-    fn it_works() {
-        check().unwrap();
+    fn test_cross_fade() {
+        let first_image = &[1, 2, 3, 4];
+        let second_image = &[4, 5, 6, 7];
+        let output = cross_fade(first_image, second_image).unwrap();
+        assert_eq!(output, vec![5, 7, 9, 11]);
     }
 }
