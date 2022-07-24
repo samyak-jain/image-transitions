@@ -17,6 +17,7 @@ static PTX: &str = include_str!("../ptx/image.ptx");
 pub fn cross_fade<T: DeviceCopy + std::fmt::Debug + Default>(
     first_image: &[T],
     second_image: &[T],
+    iterations: usize,
 ) -> Result<Vec<T>, TransitionError> {
     let _ctx = cust::quick_init()?;
     let module = Module::from_ptx(PTX, &[])?;
@@ -34,11 +35,13 @@ pub fn cross_fade<T: DeviceCopy + std::fmt::Debug + Default>(
     let first_image_buffer = first_image.as_dbuf()?;
     let second_image_buffer = second_image.as_dbuf()?;
 
-    let mut output_buffer: UnifiedBuffer<T> = unsafe { UnifiedBuffer::uninitialized(image_size) }?;
+    // TODO: Add safety comment
+    let mut output_buffer: UnifiedBuffer<T> =
+        unsafe { UnifiedBuffer::uninitialized(image_size * iterations) }?;
 
-    let func = module.get_function("add")?;
+    let func = module.get_function("cross_fade")?;
     let (_, block_size) = func.suggested_launch_configuration(0, 0.into())?;
-    let grid_size = (image_size as u32 + block_size - 1) / block_size;
+    let grid_size = ((image_size * iterations) as u32 + block_size - 1) / block_size;
 
     unsafe {
         launch!(
@@ -47,6 +50,7 @@ pub fn cross_fade<T: DeviceCopy + std::fmt::Debug + Default>(
                 first_image_buffer.len(),
                 second_image_buffer.as_device_ptr(),
                 second_image_buffer.len(),
+                iterations,
                 output_buffer.as_unified_ptr(),
             )
         )?;
@@ -67,9 +71,12 @@ mod tests {
 
     #[test]
     fn test_cross_fade() {
-        let first_image = &[1, 2, 3, 4];
-        let second_image = &[4, 5, 6, 7];
-        let output = cross_fade(first_image, second_image).unwrap();
-        assert_eq!(output, vec![5, 7, 9, 11]);
+        let first_image: &[u16] = &[100, 255, 5, 76];
+        let second_image = &[28, 8, 245, 100];
+        let iterations = 720;
+        let output = cross_fade(first_image, second_image, iterations).unwrap();
+        let split_output = output.chunks_exact(first_image.len()).collect::<Vec<_>>();
+        println!("output: {:#?}", split_output);
+        // assert_eq!(output, vec![5, 7, 9, 11]);
     }
 }

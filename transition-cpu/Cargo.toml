@@ -1,7 +1,10 @@
 [package]
-name = "transition-cpu"
+name = "image-transitions"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "A library to create image transitions on GPU"
+include = ["ptx/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
