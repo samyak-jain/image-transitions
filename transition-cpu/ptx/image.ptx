@@ -22,10 +22,10 @@
 )
 {
 	.reg .pred 	%p<6>;
-	.reg .b16 	%rs<6>;
+	.reg .b16 	%rs<8>;
 	.reg .f32 	%f<12>;
 	.reg .b32 	%r<8>;
-	.reg .b64 	%rd<24>;
+	.reg .b64 	%rd<22>;
 
 
 	ld.param.u64 	%rd6, [cross_fade_param_0];
@@ -51,48 +51,46 @@
 	setp.eq.s64 	%p3, %rd13, 0;
 	@%p3 bra 	$L__BB0_4;
 
-	div.u64 	%rd23, %rd1, %rd7;
+	div.u64 	%rd21, %rd1, %rd7;
 	bra.uni 	$L__BB0_5;
 
 $L__BB0_4:
 	cvt.u32.u64 	%r5, %rd7;
 	cvt.u32.u64 	%r6, %rd1;
 	div.u32 	%r7, %r6, %r5;
-	cvt.u64.u32 	%rd23, %r7;
+	cvt.u64.u32 	%rd21, %r7;
 
 $L__BB0_5:
-	mul.lo.s64 	%rd14, %rd23, %rd7;
+	mul.lo.s64 	%rd14, %rd21, %rd7;
 	sub.s64 	%rd5, %rd1, %rd14;
 	setp.lt.u64 	%p4, %rd5, %rd9;
 	@%p4 bra 	$L__BB0_7;
 	bra.uni 	$L__BB0_6;
 
 $L__BB0_7:
-	cvt.rn.f32.u64 	%f1, %rd23;
+	cvt.rn.f32.u64 	%f1, %rd21;
 	cvt.rn.f32.u16 	%f2, %rs1;
 	div.rn.f32 	%f3, %f1, %f2;
 	cvta.to.global.u64 	%rd15, %rd6;
-	shl.b64 	%rd16, %rd5, 1;
-	add.s64 	%rd17, %rd15, %rd16;
-	ld.global.nc.u16 	%rs2, [%rd17];
+	add.s64 	%rd16, %rd15, %rd5;
+	ld.global.nc.u8 	%rs2, [%rd16];
 	cvt.rn.f32.u16 	%f4, %rs2;
-	cvta.to.global.u64 	%rd18, %rd8;
-	add.s64 	%rd19, %rd18, %rd16;
-	ld.global.nc.u16 	%rs3, [%rd19];
-	cvt.rn.f32.u16 	%f5, %rs3;
+	cvta.to.global.u64 	%rd17, %rd8;
+	add.s64 	%rd18, %rd17, %rd5;
+	ld.global.nc.u8 	%rs4, [%rd18];
+	cvt.rn.f32.u16 	%f5, %rs4;
 	mov.f32 	%f6, 0f3F800000;
 	sub.f32 	%f7, %f6, %f3;
 	mul.f32 	%f8, %f7, %f5;
 	fma.rn.f32 	%f9, %f3, %f4, %f8;
 	cvt.rmi.f32.f32 	%f10, %f9;
-	setp.gt.f32 	%p5, %f10, 0f477FFF00;
+	setp.gt.f32 	%p5, %f10, 0f437F0000;
 	max.f32 	%f11, %f10, 0f00000000;
-	cvt.rzi.u16.f32 	%rs4, %f11;
-	selp.b16 	%rs5, -1, %rs4, %p5;
-	cvta.to.global.u64 	%rd20, %rd10;
-	shl.b64 	%rd21, %rd1, 1;
-	add.s64 	%rd22, %rd20, %rd21;
-	st.global.u16 	[%rd22], %rs5;
+	cvt.rzi.u16.f32 	%rs6, %f11;
+	selp.b16 	%rs7, -1, %rs6, %p5;
+	cvta.to.global.u64 	%rd19, %rd10;
+	add.s64 	%rd20, %rd19, %rd1;
+	st.global.u8 	[%rd20], %rs7;
 
 $L__BB0_8:
 	ret;

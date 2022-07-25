@@ -11,10 +11,10 @@ extern crate alloc;
 
 #[kernel]
 pub unsafe fn cross_fade(
-    first_image: &[u16],
-    second_image: &[u16],
+    first_image: &[u8],
+    second_image: &[u8],
     iterations: u16,
-    output: *mut u16,
+    output: *mut u8,
 ) {
     let idx = thread::index_1d();
     let image_length = first_image.len();
@@ -44,5 +44,5 @@ pub unsafe fn cross_fade(
     let calculation =
         alpha * f32::from(first_image[index]) + (1f32 - alpha) * f32::from(second_image[index]);
 
-    *elem = calculation.floor() as u16;
+    *elem = calculation.floor() as u8;
 }
