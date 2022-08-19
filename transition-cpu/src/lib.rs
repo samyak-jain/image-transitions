@@ -71,9 +71,9 @@ mod tests {
 
     #[test]
     fn test_cross_fade() {
-        let first_image: &[u16] = &[100, 255, 5, 76];
-        let second_image = &[28, 8, 245, 100];
-        let iterations = 720;
+        let first_image: &[u8] = &[100, 255, 5, 76];
+        let second_image: &[u8] = &[28, 8, 245, 100];
+        let iterations = 10;
         let output = cross_fade(first_image, second_image, iterations).unwrap();
         let split_output = output.chunks_exact(first_image.len()).collect::<Vec<_>>();
         println!("output: {:#?}", split_output);

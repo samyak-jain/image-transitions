@@ -31,6 +31,8 @@ pub unsafe fn cross_fade(
 
     // cuda_std::println!("{}", iterations);
 
+    // cuda_std::println!("{:#?}", first_image);
+
     // cuda_std::println!(
     //     "{}, {}, {}, {}",
     //     index,
@@ -40,9 +42,11 @@ pub unsafe fn cross_fade(
     // );
 
     let elem = &mut *output.add(image_length * current_iteration + index);
-    let alpha: f32 = current_iteration as f32 / f32::from(iterations);
+    let alpha: f32 = current_iteration as f32 / f32::from(iterations - 1);
+
+    // cuda_std::println!("{}, {}", first_image[index], index);
     let calculation =
-        alpha * f32::from(first_image[index]) + (1f32 - alpha) * f32::from(second_image[index]);
+        (1f32 - alpha) * f32::from(first_image[index]) + alpha * f32::from(second_image[index]);
 
     *elem = calculation.floor() as u8;
 }
