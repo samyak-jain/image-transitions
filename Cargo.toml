@@ -1,6 +1,6 @@
 [workspace]
 
 members = [
-    "transition-cpu",
-    "transition-gpu"
+    "image-transitions",
+    "gpu"
 ]
